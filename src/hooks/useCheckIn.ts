@@ -206,6 +206,7 @@ export function useCheckIn() {
     isOverdue,
     hasCheckedInToday,
     isLoading,
+    userId,
     checkIn,
     setEmergencyContact,
   };

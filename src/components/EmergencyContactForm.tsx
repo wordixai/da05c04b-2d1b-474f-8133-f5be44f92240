@@ -1,16 +1,20 @@
 import { useState } from 'react';
-import { UserCircle, Mail, Save, X, Edit2 } from 'lucide-react';
+import { UserCircle, Mail, Save, X, Edit2, Send, Loader2 } from 'lucide-react';
 import type { EmergencyContact } from '../hooks/useCheckIn';
+import { supabase } from '../lib/supabase';
 
 interface EmergencyContactFormProps {
   contact: EmergencyContact | null;
   onSave: (contact: EmergencyContact | null) => void;
+  userId: string | null;
 }
 
-export function EmergencyContactForm({ contact, onSave }: EmergencyContactFormProps) {
+export function EmergencyContactForm({ contact, onSave, userId }: EmergencyContactFormProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(contact?.name || '');
   const [email, setEmail] = useState(contact?.email || '');
+  const [isSending, setIsSending] = useState(false);
+  const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const handleSave = () => {
     if (name.trim() && email.trim()) {
@@ -30,6 +34,34 @@ export function EmergencyContactForm({ contact, onSave }: EmergencyContactFormPr
     setName('');
     setEmail('');
     setIsEditing(false);
+  };
+
+  const handleSendTest = async () => {
+    if (!userId) return;
+
+    setIsSending(true);
+    setSendResult(null);
+
+    try {
+      const { data, error } = await supabase.rpc('send_test_notification', {
+        p_user_id: userId
+      });
+
+      if (error) {
+        setSendResult({ success: false, message: error.message });
+      } else if (data) {
+        setSendResult({
+          success: data.success,
+          message: data.message || data.error || '发送完成'
+        });
+      }
+    } catch (err) {
+      setSendResult({ success: false, message: '发送失败，请稍后重试' });
+    } finally {
+      setIsSending(false);
+      // 3秒后清除结果提示
+      setTimeout(() => setSendResult(null), 5000);
+    }
   };
 
   if (!isEditing && contact) {
@@ -53,6 +85,33 @@ export function EmergencyContactForm({ contact, onSave }: EmergencyContactFormPr
             <Mail className="w-5 h-5 text-primary" />
             <span className="text-foreground">{contact.email}</span>
           </div>
+        </div>
+
+        {/* 发送测试邮件按钮 */}
+        <div className="mt-4 pt-4 border-t border-border">
+          <button
+            onClick={handleSendTest}
+            disabled={isSending || !userId}
+            className="w-full bg-secondary text-secondary-foreground py-3 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-secondary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSending ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                发送中...
+              </>
+            ) : (
+              <>
+                <Send className="w-5 h-5" />
+                发送测试邮件
+              </>
+            )}
+          </button>
+
+          {sendResult && (
+            <p className={`mt-3 text-sm text-center ${sendResult.success ? 'text-success' : 'text-danger'}`}>
+              {sendResult.message}
+            </p>
+          )}
         </div>
       </div>
     );

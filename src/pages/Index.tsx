@@ -13,6 +13,7 @@ export default function Index() {
     timeRemaining,
     isOverdue,
     hasCheckedInToday,
+    userId,
     checkIn,
     setEmergencyContact,
   } = useCheckIn();
@@ -81,6 +82,7 @@ export default function Index() {
             <EmergencyContactForm
               contact={emergencyContact}
               onSave={setEmergencyContact}
+              userId={userId}
             />
           </section>
 
